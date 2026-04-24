@@ -9,7 +9,7 @@ import statistics
 
 PIN_MOSFET = 17
 
-SCALE_SAMPLES_PER_READING = 2
+SCALE_SAMPLES_PER_READING = 1
 SCALE_CALIBRATION_FILE = 'calibration.json'
 
 STABILIZATION_THRESHOLD_WEIGHT = 350
@@ -18,9 +18,9 @@ STABILIZATION_SECONDS = 1.0
 
 GRIND_WEIGHT_GOAL = 18
 GRIND_MAX_SECONDS = 7
-GRIND_WEIGHT_INFLIGHT_DEFAULT = 1.2
+GRIND_WEIGHT_INFLIGHT_DEFAULT = 1.0
 GRIND_PREDICTION_FILE = 'prediction.json'
-GRIND_COOLDOWN_SECONDS = 1.5
+GRIND_COOLDOWN_SECONDS = 2.5
 
 def calibrate(scale: qwiic_nau7802.QwiicNAU7802):
     print("Calibration Mode")
@@ -28,13 +28,13 @@ def calibrate(scale: qwiic_nau7802.QwiicNAU7802):
     # Calculate zero offset averaged
     print("Remove weight from scale. Press any key to continue...")
     input()
-    scale.calculate_zero_offset(10)
+    scale.calculate_zero_offset(18)
     zero_offset = scale.get_zero_offset()
 
     # Calculate averaged calibration factor 
     print("Place a known weight on the scale and enter weight without units when stable...")
     weight = float(input())
-    scale.calculate_calibration_factor(weight, 10)
+    scale.calculate_calibration_factor(weight, 18)
     calibration_factor = scale.get_calibration_factor()
 
     # Write calibration values to file
@@ -60,7 +60,7 @@ def perform_zero_calibration(scale: qwiic_nau7802.QwiicNAU7802) -> None:
     print(f'[Zero Calibration] Set zero offset to {zero_offset_average}')
 
 def get_weight(scale: qwiic_nau7802.QwiicNAU7802, zero_offset: float, calibration_factor: float) -> float:
-    mean_raw = get_trimmed_mean_readings(scale, 1, 0.0)
+    mean_raw = get_trimmed_mean_readings(scale, SCALE_SAMPLES_PER_READING, 0.0)
     mean_weight = (mean_raw - zero_offset) / calibration_factor
     return max(0., mean_weight)
 
@@ -134,7 +134,7 @@ def grind_by_weight(scale: qwiic_nau7802.QwiicNAU7802, mosfet: OutputDevice):
         timeout = (motor_end_time - motor_begin_time) >= GRIND_MAX_SECONDS
         last_deviation = weights[-1]['weight'] - GRIND_WEIGHT_GOAL
         end_elements = []
-        for i in range(1, 6):
+        for i in range(1, 20):
             end_elements.append(weights[-1 * i]['weight'] - GRIND_WEIGHT_GOAL)
         average_deviation = statistics.fmean(end_elements)
         print('[Analyzation] Average Deviation: ', average_deviation)
@@ -198,7 +198,7 @@ def main():
         print('Load cell amplifier not connected. Leaving program.')
     else:
         scale.begin()
-        scale.set_sample_rate(scale.NAU7802_SPS_10)
+        scale.set_sample_rate(scale.NAU7802_SPS_20)
         scale.set_gain(scale.NAU7802_GAIN_128)
         scale.calibrate_afe()
 
@@ -215,7 +215,7 @@ def main():
             sys.exit(1)
         except (KeyboardInterrupt, SystemExit) as error:
             mosfet.off()
-            print(f'Stopping grindy: {error}')
+            print(f'Stopping grindy.')
             sys.exit(0)
 
 if __name__ == '__main__':
