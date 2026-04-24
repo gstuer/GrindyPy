@@ -1,7 +1,5 @@
-colorzero
 gpiozero
-setuptools
-smbus2
+colorzero
 sparkfun_qwiic_i2c
 sparkfun_qwiic_nau7802
 scipy
