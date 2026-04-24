@@ -1,0 +1,19 @@
+[Unit]
+Description=GrindyPy Service
+After=multi-user.target
+StartLimitIntervalSec=300
+StartLimitBurst=5
+
+[Service]
+CPUSchedulingPolicy=rr
+CPUSchedulingPriority=99
+User=pi
+WorkingDirectory=/home/pi/GrindyPy
+ExecStart=/home/pi/GrindyPy/.env/bin/python -u /home/pi/GrindyPy/grindy.py
+StandardOutput=append:/home/pi/GrindyPy/grindy.out
+StandardError=append:/home/pi/GrindyPy/grindy.out
+Restart=on-failure
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target
